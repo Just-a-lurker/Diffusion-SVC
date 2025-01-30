@@ -269,7 +269,7 @@ class DiffusionSVC:
                                  "input mel or output of naive model")
             print(f' [INFO] k_step_max is {self.args.model.k_step_max}.')
 
-            if (self.args.model.type != 'ReFlow') and (self.args.model.type != 'ReFlow1Step'):
+            if not self.args.model.type.startswith('ReFlow'):
                 if k_step > int(self.args.model.k_step_max):
                     raise ValueError(f"k_step must <= args.model.k_step_max of Shallow Diffusion Model")
             else:
@@ -286,7 +286,7 @@ class DiffusionSVC:
         else:
             spk_id = torch.LongTensor(np.array([[int(spk_id)]])).to(self.device)
 
-        if (self.args.model.type != 'ReFlow') and (self.args.model.type != 'ReFlow1Step'):
+        if not self.args.model.type.startswith('ReFlow'):
             if k_step is not None:
                 if k_step == 1000:
                     print(f' [INFO] get k_step=1000, do full 1000 steps depth diffusion')
@@ -312,7 +312,7 @@ class DiffusionSVC:
         else:
             use_vae = False
 
-        if (self.args.model.type != 'ReFlow') and (self.args.model.type != 'ReFlow1Step'):
+        if not self.args.model.type.startswith('ReFlow'):
             return self.model(units, f0, volume, spk_id=spk_id, spk_mix_dict=spk_mix_dict, aug_shift=aug_shift,
                               gt_spec=gt_spec, infer=True, infer_speedup=infer_speedup, method=method, k_step=k_step,
                               use_tqdm=use_tqdm, spk_emb=spk_emb, spk_emb_dict=spk_emb_dict, use_vae=use_vae)
@@ -326,10 +326,10 @@ class DiffusionSVC:
               infer_speedup=10, method='dpm-solver', k_step=None, use_tqdm=True,
               spk_emb=None, t_start=None, infer_step=10):
         if (
-                ((k_step is not None) and ((self.args.model.type != 'ReFlow')or(self.args.model.type != 'ReFlow1Step'))) or
-                ((t_start is not None) and ((self.args.model.type == 'ReFlow')or(self.args.model.type == 'ReFlow1Step')))
+                ((k_step is not None) and not self.args.model.type.startswith('ReFlow')) or
+                ((t_start is not None) and self.args.model.type.startswith('ReFlow'))
         ):
-            if (self.args.model.type == 'ReFlow') or (self.args.model.type == 'ReFlow1Step'):
+            if self.args.model.type.startswith('ReFlow'):
                 t_start = float(t_start)
             else:
                 k_step = int(k_step)
@@ -401,11 +401,10 @@ class DiffusionSVC:
         volume, mask = self.extract_volume_and_mask(audio, sr, threhold=float(threhold))
 
         if (
-                ((k_step is not None) and ((self.args.model.type != 'ReFlow')and(self.args.model.type != 'ReFlow1Step')))
-                or
-                ((t_start is not None) and ((self.args.model.type == 'ReFlow')or(self.args.model.type == 'ReFlow1Step')))
+                ((k_step is not None) and not self.args.model.type.startswith('ReFlow')) or
+                ((t_start is not None) and self.args.model.type.startswith('ReFlow'))
         ):
-            if (self.args.model.type == 'ReFlow') or (self.args.model.type == 'ReFlow1Step'):
+            if self.args.model.type.startswith('ReFlow'):
                 assert 1.0 >= t_start >= 0.0
                 t_start = float(t_start)
             else:
@@ -449,10 +448,10 @@ class DiffusionSVC:
         if infer_step < 1:
             raise ValueError("infer_step must >= 1 when ReFlow Model inferring")
         if (
-                ((k_step is not None) and ((self.args.model.type != 'ReFlow')and(self.args.model.type != 'ReFlow1Step'))) or
-                ((t_start is not None) and ((self.args.model.type == 'ReFlow')or(self.args.model.type == 'ReFlow1Step')))
+                ((k_step is not None) and not self.args.model.type.startswith('ReFlow')) or
+                ((t_start is not None) and self.args.model.type.startswith('ReFlow'))
         ):
-            if (self.args.model.type == 'ReFlow') or (self.args.model.type == 'ReFlow1Step'):
+            if self.args.model.type.startswith('ReFlow'):
                 assert 1.0 >= float(t_start) >= 0.0
                 t_start = float(t_start)
             else:
@@ -548,7 +547,7 @@ class DiffusionSVC:
             f0 = f0[:, start_frame:, :]
             units = units[:, start_frame:, :]
             volume = volume[:, start_frame:, :]
-        if (self.args.model.type == 'ReFlow') or (self.args.model.type == 'ReFlow1Step'):
+        if self.args.model.type.startswith('ReFlow'):
             if (t_start is not None) and (t_start != 0.0):
                 t_start = float(t_start)
                 if t_start < float(self.args.model.t_start):

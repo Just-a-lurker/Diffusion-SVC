@@ -129,7 +129,8 @@ class NaiveV2Diff(nn.Module):
             atten_dropout=0.1,
             no_t_emb=False,
             conv_model_activation='SiLU',
-            GLU_type='GLU'
+            GLU_type='GLU',
+            type='ReFlow'
     ):
         super(NaiveV2Diff, self).__init__()
         self.no_t_emb = no_t_emb if (no_t_emb is not None) else False
@@ -146,7 +147,15 @@ class NaiveV2Diff(nn.Module):
                 nn.GELU(),
                 nn.Linear(dim * mlp_factor, dim),
             )
-        
+        if type == 'ReFlowShortCut':
+            self.stepsize_embedding = nn.Sequential(
+                DiffusionEmbedding(dim),
+                nn.Linear(dim, dim * mlp_factor),
+                nn.GELU(),
+                nn.Linear(dim * mlp_factor, dim),
+            )
+        else:
+            self.stepsize_embedding = None
         if use_mlp:
             self.conditioner_projection = nn.Sequential(
                 nn.Conv1d(condition_dim, dim * mlp_factor, 1),
@@ -191,7 +200,7 @@ class NaiveV2Diff(nn.Module):
             self.output_projection = nn.Conv1d(dim, mel_channels, kernel_size=1)
             nn.init.zeros_(self.output_projection.weight)
 
-    def forward(self, spec, diffusion_step, cond):
+    def forward(self, spec, t_step, cond, d_step=None):
         x = spec
         conditioner = cond
         """
@@ -214,9 +223,11 @@ class NaiveV2Diff(nn.Module):
         x = F.gelu(x)
 
         if self.no_t_emb:
-            diffusion_step = None
+            diffusion_step = 0
         else:
-            diffusion_step = self.diffusion_embedding(diffusion_step).unsqueeze(-1)
+            diffusion_step = self.diffusion_embedding(t_step).unsqueeze(-1)
+        if self.stepsize_embedding is not None and d_step is not None:
+            diffusion_step += self.stepsize_embedding(d_step).unsqueeze(-1)
         condition = self.conditioner_projection(conditioner)
 
         if self.wavenet_like:

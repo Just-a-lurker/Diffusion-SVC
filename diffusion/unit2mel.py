@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 import random
 from .reflow.reflow_1step import RectifiedFlow1Step
+from .reflow.reflow_shortcut import RectifiedFlowShortCut
 from .reflow.reflow import RectifiedFlow
 from .diffusion import GaussianDiffusion
 from .convnext import ConvNext
@@ -25,7 +26,7 @@ class DotDict(dict):
     __delattr__ = dict.__delitem__
 
 
-def get_network_from_dot(netdot, out_dims, cond_dims):
+def get_network_from_dot(netdot, out_dims, cond_dims, type):
     # check type
     if not isinstance(netdot, DotDict):
         assert isinstance(netdot, dict)
@@ -118,7 +119,8 @@ def get_network_from_dot(netdot, out_dims, cond_dims):
             atten_dropout=atten_dropout,
             no_t_emb=no_t_emb,
             conv_model_activation=conv_model_activation,
-            GLU_type=GLU_type
+            GLU_type=GLU_type,
+            type=type,
         )
 
     else:
@@ -290,7 +292,28 @@ def load_svc_model(args, vocoder_dimension):
             naive_fn_grad_not_by_reflow=args.model.naive_fn_grad_not_by_reflow,
             naive_out_mel_cond_reflow=args.model.naive_out_mel_cond_reflow,
             loss_type=args.model.loss_type, )
-
+            
+    elif args.model.type == 'ReFlowShortCut':
+        model = Unit2MelV2ReFlowShortCut(
+            args.data.encoder_out_channels,
+            args.model.n_spk,
+            args.model.use_pitch_aug,
+            vocoder_dimension,
+            args.model.n_hidden,
+            use_speaker_encoder=args.model.use_speaker_encoder,
+            speaker_encoder_out_channels=args.data.speaker_encoder_out_channels,
+            z_rate=args.model.z_rate,
+            mean_only=args.model.mean_only,
+            max_beta=args.model.max_beta,
+            spec_min=args.model.spec_min,
+            spec_max=args.model.spec_max,
+            velocity_fn=args.model.velocity_fn,
+            mask_cond_ratio=args.model.mask_cond_ratio,
+            naive_fn=args.model.naive_fn,
+            naive_fn_grad_not_by_reflow=args.model.naive_fn_grad_not_by_reflow,
+            naive_out_mel_cond_reflow=args.model.naive_out_mel_cond_reflow,
+            loss_type=args.model.loss_type,)
+            
     elif args.model.type == 'Naive':
         model = Unit2MelNaive(
             args.data.encoder_out_channels,
@@ -339,7 +362,9 @@ def load_svc_model(args, vocoder_dimension):
 
     else:
         raise TypeError(" [X] Unknow model")
-
+    
+    model.type = args.model.type 
+    
     # check compile
     if args.model.torch_compile_args is not None:
         if str(args.model.torch_compile_args.use_copile).lower() == 'true':
@@ -469,7 +494,7 @@ class Unit2MelV2(nn.Module):
             self.naive_proj = nn.Linear(out_dims, n_hidden)
 
         # init denoiser
-        denoiser = get_network_from_dot(denoise_fn, out_dims, n_hidden)
+        denoiser = get_network_from_dot(denoise_fn, out_dims, n_hidden, denoise_fn.type)
 
         self.denoise_fn_type = denoise_fn.type
 
@@ -696,6 +721,8 @@ class Unit2MelV2ReFlow(Unit2MelV2):
         if infer:
             x = self.decoder(x, gt_spec=gt_spec, infer=True, infer_step=infer_step, method=method, t_start=t_start,
                              use_tqdm=use_tqdm)
+        elif self.type == 'ReFlowShortCut':
+            x, sc_loss = self.decoder(x, gt_spec=gt_spec, t_start=t_start, infer=False)
         else:
             x = self.decoder(x, gt_spec=gt_spec, t_start=t_start, infer=False)
 
@@ -708,9 +735,12 @@ class Unit2MelV2ReFlow(Unit2MelV2):
 
         if not infer:
             if self.combo_trained_model:
-                return {'reflow_loss': x, 'naive_loss': naive_loss}
+                loss_dict = {'reflow_loss': x, 'naive_loss': naive_loss}
             else:
-                return {'reflow_loss': (x + naive_loss)}
+                loss_dict = {'reflow_loss': (x + naive_loss)}
+            if self.type == 'ReFlowShortCut':
+                loss_dict['sc_loss'] = sc_loss
+            return loss_dict
 
         return x
 
@@ -726,6 +756,17 @@ class Unit2MelV2ReFlow1Step(Unit2MelV2ReFlow):
         return decoder
 
 
+class Unit2MelV2ReFlowShortCut(Unit2MelV2ReFlow):
+    def spawn_decoder(self, velocity_fn, out_dims):
+        decoder = RectifiedFlowShortCut(
+            velocity_fn,
+            out_dims=out_dims,
+            spec_min=self.spec_min,
+            spec_max=self.spec_max,
+            loss_type=self.loss_type)
+        return decoder
+
+       
 class Unit2Mel(nn.Module):
     # old version
     def __init__(

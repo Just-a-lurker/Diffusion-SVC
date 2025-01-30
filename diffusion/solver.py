@@ -87,7 +87,7 @@ def test(args, model, vocoder, loader_test, saver):
 
             # forward
             st_time = time.time()
-            if args.model.type == 'ReFlow' or args.model.type == 'ReFlow1Step':
+            if args.model.type.startswith('ReFlow'):
                 mel = model(
                     data['units'],
                     data['f0'],
@@ -123,7 +123,7 @@ def test(args, model, vocoder, loader_test, saver):
 
             # loss
             for i in range(args.train.batch_size):
-                if args.model.type == 'ReFlow' or args.model.type == 'ReFlow1Step':
+                if args.model.type.startswith('ReFlow'):
                     loss_dict = model(
                         data['units'],
                         data['f0'],
@@ -297,7 +297,7 @@ def train(args, initial_global_step, model, optimizer, scheduler, vocoder, loade
                     data[k] = data[k].to(args.device)
 
             # forward
-            if (args.model.type == 'ReFlow') or (args.model.type == 'ReFlow1Step'):
+            if args.model.type.startswith('ReFlow'):
                 if dtype == torch.float32:
                     loss_dict = model(data['units'].float(), data['f0'], data['volume'], data['spk_id'],
                                       aug_shift=data['aug_shift'],
