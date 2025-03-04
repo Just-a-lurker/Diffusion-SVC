@@ -6,7 +6,9 @@ import numpy as np
 import soundfile as sf
 from ast import literal_eval
 from tools.infer_tools import DiffusionSVC
-
+from fairseq.data.dictionary import Dictionary
+# Allowlist Fairseq's Dictionary class
+torch.serialization.add_safe_globals([Dictionary])
 
 def parse_args(args=None, namespace=None):
     """Parse command-line arguments."""

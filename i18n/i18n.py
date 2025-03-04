@@ -10,7 +10,7 @@ LANGUAGE_AND_MODEL_PATH中添加不同模块的本地化信息
 LANGUAGE_AND_MODEL_PATH = {
     "gui_realtime.py": {  # 此模块是gui.py的语言文件
         "path": "i18n/gui_realtime",  # 此目录下以语言名的json文件储存本地化信息
-        "base_language": "zh_CN",  # base语言会和代码同步更新
+        "base_language": "en_US",  # base语言会和代码同步更新
         "language_list": ['zh_CN', 'en_US']  # 支持的语言需要在这里记录
     }
 }

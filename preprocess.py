@@ -11,7 +11,10 @@ from tools.tools import F0_Extractor, Volume_Extractor, Units_Encoder, SpeakerEn
 from diffusion.vocoder import Vocoder
 from logger.utils import traverse_dir
 
+from fairseq.data.dictionary import Dictionary
 
+# Allowlist Fairseq's Dictionary class
+torch.serialization.add_safe_globals([Dictionary])
 def parse_args(args=None, namespace=None):
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser()
@@ -217,7 +220,7 @@ if __name__ == '__main__':
         speaker_encoder = SpeakerEncoder(args.data.speaker_encoder, args.data.speaker_encoder_config,
                                          args.data.speaker_encoder_ckpt, args.data.speaker_encoder_sample_rate,
                                          device=device)
-
+    print(f"Speaker Encoder Status: {speaker_encoder is not None}")
     # preprocess training set
     preprocess(args.data.train_path, f0_extractor, volume_extractor, mel_extractor, units_encoder, sample_rate,
                hop_size,

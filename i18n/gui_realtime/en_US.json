@@ -1,5 +1,5 @@
 {
-    "SUPER": "zh_CN",
+    "SUPER": "SUPER",
     "LANGUAGE": "en_US",
     "选择模型文件": "Select model file",
     "模型：.pt格式(config.yaml需在同目录下);或.ptc格式组合模型": "Model: .pt format (config.yaml needs to be in the same directory); or .ptc format combo model",
