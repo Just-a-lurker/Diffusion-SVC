@@ -20,7 +20,6 @@ torchcrepe
 torchfcpe
 tqdm
 transformers
-wave
 pysimplegui
 sounddevice
 gradio
