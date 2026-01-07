@@ -28,7 +28,7 @@ model:
 device: cuda
 vocoder:
   type: 'nsf-hifigan'
-  ckpt: 'pretrain/nsf_hifigan/model'
+  ckpt: 'pretrain/nsf_hifigan/model.ckpt'
 infer:
   speedup: 10
   method: 'dpm-solver' # 'ddim', 'pndm', 'dpm-solver' or 'unipc'
