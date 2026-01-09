@@ -38,7 +38,7 @@ train:
   amp_dtype: fp32 # naive model only can ues fp32, else nan
   batch_size: 48
   cache_all_data: true # Save Internal-Memory or Graphics-Memory if it is false, but may be slow
-  cache_device: 'cpu' # Set to 'cuda' to cache the data into the Graphics-Memory, fastest speed for strong gpu
+  cache_device: 'cuda' # Set to 'cuda' to cache the data into the Graphics-Memory, fastest speed for strong gpu
   cache_fp16: true
   epochs: 100000
   interval_log: 10

@@ -6,6 +6,8 @@ import numpy as np
 import soundfile as sf
 from ast import literal_eval
 from tools.infer_tools import DiffusionSVC
+from getf0Quantile import getQ
+from clamp import hz_extrapolate_limit
 from fairseq.data.dictionary import Dictionary
 # Allowlist Fairseq's Dictionary class
 torch.serialization.add_safe_globals([Dictionary])
@@ -191,6 +193,12 @@ if __name__ == '__main__':
     in_wav, in_sr = librosa.load(cmd.input, sr=None)
     if len(in_wav.shape) > 1:
         in_wav = librosa.to_mono(in_wav)
+    Q1 = getQ(1)
+    Q3 = getQ(3)
+    HZ_MAX = Q3
+    HZ_MIN = Q1
+    LOG_HZ_MIN = np.log(hz_extrapolate_limit(Q1, 4))
+    LOG_HZ_MAX = np.log(hz_extrapolate_limit(Q3, -5))
     # infer
     out_wav, out_sr = diffusion_svc.infer_from_long_audio(
         in_wav, sr=in_sr,
@@ -206,7 +214,11 @@ if __name__ == '__main__':
         threhold=float(cmd.threhold),
         threhold_for_split=float(cmd.threhold_for_split),
         min_len=int(cmd.min_len),
-        index_ratio=float(cmd.index_ratio)
+        index_ratio=float(cmd.index_ratio),
+        HZ_MAX=HZ_MAX,
+        HZ_MIN= HZ_MIN,
+        LOG_HZ_MIN=LOG_HZ_MIN,
+        LOG_HZ_MAX=LOG_HZ_MAX
     )
     # save
     sf.write(cmd.output, out_wav, out_sr)

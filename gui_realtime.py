@@ -8,6 +8,8 @@ from i18n.i18n import I18nAuto
 from tools.infer_tools import DiffusionSVC
 import argparse
 import time
+from getf0Quantile import getQ
+from clamp import hz_extrapolate_limit
 
 flag_vc = False
 
@@ -96,6 +98,12 @@ class GUI:
         self.update_devices()
         self.default_input_device = self.input_devices[self.input_devices_indices.index(sd.default.device[0])]
         self.default_output_device = self.output_devices[self.output_devices_indices.index(sd.default.device[1])]
+        self.Q1 = getQ(1)
+        self.Q3 = getQ(3)
+        self.HZ_MAX = self.Q3
+        self.HZ_MIN = self.Q1
+        self.LOG_HZ_MIN = np.log(hz_extrapolate_limit(self.Q1, 4))
+        self.LOG_HZ_MAX = np.log(hz_extrapolate_limit(self.Q3, -5))
         self.launcher()  # start
 
     def launcher(self):
@@ -312,7 +320,7 @@ class GUI:
         if not flag_vc:
             flag_vc = True
             self.stream = sd.Stream(
-                channels=2,
+                channels=1,
                 callback=self.audio_callback,
                 blocksize=self.block_frame,
                 samplerate=self.config.samplerate,
@@ -355,7 +363,12 @@ class GUI:
             diff_jump_silence_front=self.config.jump_silence,
             threhold=self.config.threhold,
             index_ratio=0,
-            use_hubert_mask=self.config.use_hubert_mask)
+            use_hubert_mask=self.config.use_hubert_mask,
+            HZ_MAX=self.HZ_MAX,
+            HZ_MIN = self.HZ_MIN,
+            LOG_HZ_MIN=self.LOG_HZ_MIN,
+            LOG_HZ_MAX = self.LOG_HZ_MAX
+        )
 
         # debug sola
         '''
@@ -397,7 +410,7 @@ class GUI:
 
         self.sola_buffer = temp_wav[- self.crossfade_frame:]
 
-        outdata[:] = temp_wav[: - self.crossfade_frame, None].repeat(1, 2).cpu().numpy()
+        outdata[:] = temp_wav[: - self.crossfade_frame, None].repeat(1, 1).cpu().numpy()
         end_time = time.perf_counter()
         if flag_vc:
             self.window['infer_time'].update(int((end_time - start_time) * 1000))

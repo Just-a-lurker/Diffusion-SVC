@@ -15,6 +15,9 @@ from encoder.speaker_encoder.model import SpeakerEncoder as TTSSpeakerEncoder
 import scipy.signal
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from torchaudio.transforms import Resample
+from fairseq.data.dictionary import Dictionary
+
+torch.serialization.add_safe_globals([Dictionary])
 
 CREPE_RESAMPLE_KERNEL = {}
 

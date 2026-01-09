@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional
 from torchaudio.transforms import Resample
 from tqdm import tqdm
+from clamp import compress_low_f0, shift_f0_contour
 from diffusion.unit2mel import load_model_vocoder, load_model_vocoder_from_combo
 from tools.slicer import split
 from tools.units_index import UnitsIndexer
@@ -168,9 +169,11 @@ class DiffusionSVC:
         return self.units_encoder.encode(audio, sr, hop_size, padding_mask=padding_mask)
 
     @torch.no_grad()
-    def extract_f0(self, audio, key=0, sr=44100, silence_front=0):
+    def extract_f0(self, audio, key=0, sr=44100, silence_front=0, HZ_MAX = 0, HZ_MIN = 0 ,LOG_HZ_MIN= 0, LOG_HZ_MAX=0):
         assert self.f0_extractor is not None
         f0 = self.f0_extractor.extract(audio, uv_interp=True, device=self.device, silence_front=silence_front, sr=sr)
+        f0 = shift_f0_contour(f0, HZ_MAX=HZ_MAX, HZ_MIN=HZ_MIN, max_semitone=12)
+        f0 = compress_low_f0(f0, LOG_HZ_MAX = LOG_HZ_MAX, LOG_HZ_MIN = LOG_HZ_MIN, gammaLow=0.25, gammaHigh=0.3)
         f0 = torch.from_numpy(f0).float().to(self.device).unsqueeze(-1).unsqueeze(0)
         f0 = f0 * 2 ** (float(key) / 12)
         return f0
@@ -351,14 +354,14 @@ class DiffusionSVC:
     def infer_from_long_audio(self, audio, sr=44100, key=0, spk_id=1, spk_mix_dict=None, aug_shift=0,
                               infer_speedup=10, method='dpm-solver', k_step=None, use_tqdm=True,
                               spk_emb=None,
-                              threhold=-60, threhold_for_split=-40, min_len=5000, index_ratio=0):
+                              threhold=-60, threhold_for_split=-40, min_len=5000, index_ratio=0, HZ_MAX=0, HZ_MIN = 0, LOG_HZ_MIN=0, LOG_HZ_MAX=0):
 
         hop_size = self.args.data.block_size * sr / self.args.data.sampling_rate
         segments = split(audio, sr, hop_size, db_thresh=threhold_for_split, min_len=min_len)
 
         print(f' [INFO] Extract f0 volume and mask: Use {self.f0_model}, start...')
         _f0_start_time = time.time()
-        f0 = self.extract_f0(audio, key=key, sr=sr)
+        f0 = self.extract_f0(audio, key=key, sr=sr, HZ_MAX=HZ_MAX,HZ_MIN=HZ_MIN ,LOG_HZ_MIN=LOG_HZ_MIN, LOG_HZ_MAX=LOG_HZ_MAX)
         volume, mask = self.extract_volume_and_mask(audio, sr, threhold=float(threhold))
         _f0_end_time = time.time()
         _f0_used_time = _f0_end_time - _f0_start_time
@@ -409,7 +412,7 @@ class DiffusionSVC:
     def infer_from_audio_for_realtime(self, audio, sr, key, spk_id=1, spk_mix_dict=None, aug_shift=0,
                                       infer_speedup=10, method='dpm-solver', k_step=None, use_tqdm=True,
                                       spk_emb=None, silence_front=0, diff_jump_silence_front=False, threhold=-60,
-                                      index_ratio=0, use_hubert_mask=False):
+                                      index_ratio=0, use_hubert_mask=False, HZ_MAX=0, HZ_MIN = 0, LOG_HZ_MIN=0, LOG_HZ_MAX=0):
 
         start_frame = int(silence_front * self.vocoder.vocoder_sample_rate / self.vocoder.vocoder_hop_size)
         audio_t = torch.from_numpy(audio).float().unsqueeze(0).to(self.device)
@@ -439,7 +442,7 @@ class DiffusionSVC:
         if index_ratio > 0:
             units = self.units_indexer(units_t=units, spk_id=spk_id, ratio=index_ratio)
         _f0_star_time = time.time()
-        f0 = self.extract_f0(audio, key=key, sr=sr, silence_front=silence_front)
+        f0 = self.extract_f0(audio, key=key, sr=sr, silence_front=silence_front, HZ_MAX=HZ_MAX,HZ_MIN=HZ_MIN ,LOG_HZ_MIN=LOG_HZ_MIN, LOG_HZ_MAX=LOG_HZ_MAX)
         _f0_end_time = time.time()
         print(f' [INFO] Extract f0 volume and mask: Done. Use time:{_f0_end_time - _f0_star_time}')
 
