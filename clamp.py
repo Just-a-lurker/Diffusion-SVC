@@ -57,7 +57,7 @@ def compress_low_f0(f0, LOG_HZ_MAX, LOG_HZ_MIN, gammaLow=0.25, gammaHigh =0.5):
 def hz_extrapolate_limit(f_ref_hz, semitone_down):
     return f_ref_hz * (2 ** (-semitone_down / 12))
 
-def shift_f0_contour(
+def shift_f0_contourB(
     f0,
     HZ_MIN,
     HZ_MAX,
@@ -84,8 +84,8 @@ def shift_f0_contour(
     #     mean_high = np.mean(f0[high])
     #     print(mean_high)
     #     semitone = 12 * np.log2(HZ_MAX / mean_high)
-    high_mean = np.mean(f0[high])
-    low_mean = np.mean(f0[low])
+    high_mean = np.mean(f0[high]) if np.any(high) else 0
+    low_mean = np.mean(f0[low]) if np.any(low) else 0
     semitone_low = 12 * np.log2(HZ_MIN / low_mean)
     semitone_high = 12 * np.log2(HZ_MAX / high_mean)
     semitone = semitone_low + semitone_high
@@ -124,4 +124,37 @@ def shift_f0_contour(
     #     print(corr_semitone)
 
 
+    return f0
+
+def shift_f0_contour(
+    f0,
+    HZ_MIN,
+    HZ_MAX,
+    max_semitone=5
+):
+    #f0 = f0.astype(np.float32, copy=False)
+    voiced = f0 > 65
+    if not np.any(voiced):
+        return f0
+
+    med = np.median(f0[voiced])
+    semitone = 0.0
+
+    if med < HZ_MIN:
+        semitone = 12 * np.log2(HZ_MIN / med)
+    elif med > HZ_MAX:
+        semitone = 12 * np.log2(HZ_MAX / med)
+
+    # clamp theo khả năng extrapolate của model
+    semitone = np.clip(semitone, -max_semitone, max_semitone)
+    print(semitone)
+    print(med)
+    print(HZ_MIN)
+    print(HZ_MIN*0.8)
+    print(HZ_MAX)
+
+    if abs(semitone) < 0.1:
+        return f0
+
+    f0[voiced] *= 2 ** (semitone / 12)
     return f0
