@@ -4,7 +4,7 @@ import glob
 def getQ(a):
     f0_all = []
 
-    for path in glob.glob("data/train/f0/2/*.npy"):
+    for path in glob.glob("data/train/f0/1/*.npy"):
         f0 = np.load(path)
 
         mask = f0 > 65

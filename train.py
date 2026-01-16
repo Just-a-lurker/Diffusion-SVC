@@ -107,7 +107,7 @@ if __name__ == '__main__':
                                 optimizer,
                                 step_size=args.train.decay_step,
                                 gamma=args.train.gamma,
-                                last_epoch=initial_global_step - 2
+                                last_epoch=initial_global_step + warmup_step - 2
                             )
                         ],
             milestones=[warmup_step]
