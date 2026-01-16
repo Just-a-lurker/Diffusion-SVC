@@ -4,11 +4,10 @@ import glob
 def getQ(a):
     f0_all = []
 
-    for path in glob.glob("data/train/f0/1/*.npy"):
+    for path in glob.glob("data/train/f0/2/*.npy"):
         f0 = np.load(path)
 
-        # bỏ zero và pitch không thể là nữ
-        mask = f0 > 50   # rất quan trọng
+        mask = f0 > 65
         if mask.any():
             f0_all.append(f0[mask])
 

@@ -1,5 +1,5 @@
 data:
-  f0_extractor: 'crepe' # 'parselmouth', 'dio', 'harvest', 'crepe', 'rmvpe' or 'fcpe'
+  f0_extractor: 'rmvpe' # 'parselmouth', 'dio', 'harvest', 'crepe', 'rmvpe' or 'fcpe'
   f0_min: 65 # about C2
   f0_max: 800 # about G5
   sampling_rate: 44100
@@ -24,7 +24,7 @@ model:
   n_hidden: 256
   k_step_max: 100 # must <= 1000
   use_pitch_aug: true  
-  n_spk: 1 # max number of different speakers
+  n_spk: 2 # max number of different speakers
 device: cuda
 vocoder:
   type: 'nsf-hifigan'
@@ -46,8 +46,9 @@ train:
   interval_log: 10
   interval_val: 2000
   interval_force_save: 10000
-  lr: 0.00016
+  lr: 0.00005
   decay_step: 40000
   gamma: 0.5
   weight_decay: 0
   save_opt: false
+  warmup_step: 5000

@@ -197,8 +197,8 @@ if __name__ == '__main__':
     Q3 = getQ(3)
     HZ_MAX = Q3
     HZ_MIN = Q1
-    LOG_HZ_MIN = np.log(hz_extrapolate_limit(Q1, 4))
-    LOG_HZ_MAX = np.log(hz_extrapolate_limit(Q3, -5))
+    LOG_HZ_MIN = np.log(hz_extrapolate_limit(Q1, 5))
+    LOG_HZ_MAX = np.log(hz_extrapolate_limit(Q3, -6))
     # infer
     out_wav, out_sr = diffusion_svc.infer_from_long_audio(
         in_wav, sr=in_sr,

@@ -7,6 +7,7 @@ from diffusion.data_loaders import get_data_loaders
 from diffusion.solver import train
 from diffusion.unit2mel import Unit2Mel, Unit2MelNaive
 from diffusion.vocoder import Vocoder
+from torch.optim.lr_scheduler import LambdaLR, StepLR, SequentialLR
 
 
 def parse_args(args=None, namespace=None):
@@ -72,7 +73,14 @@ if __name__ == '__main__':
     
     else:
         raise ValueError(f" [x] Unknown Model: {args.model.type}")
-    
+
+    warmup_step = args.train.warmup_step
+
+
+    def warmup_lambda(step):
+        return min((step + 1) / warmup_step, 1.0)
+
+
     # load parameters
     optimizer = torch.optim.AdamW(model.parameters())
     initial_global_step, model, optimizer = utils.load_model(args.env.expdir, model, optimizer, device=args.device)
@@ -80,8 +88,33 @@ if __name__ == '__main__':
         param_group['initial_lr'] = args.train.lr
         param_group['lr'] = args.train.lr * args.train.gamma ** max((initial_global_step - 2) // args.train.decay_step, 0)
         param_group['weight_decay'] = args.train.weight_decay
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=args.train.decay_step, gamma=args.train.gamma, last_epoch=initial_global_step-2)
-    
+    print(optimizer)
+    if initial_global_step > warmup_step:
+        scheduler = StepLR(
+                            optimizer,
+                            step_size=args.train.decay_step,
+                            gamma=args.train.gamma,
+                            last_epoch=initial_global_step - 2
+                        )
+    else:
+        scheduler = SequentialLR(
+            optimizer,
+            schedulers=[LambdaLR(
+                                optimizer,
+                                lr_lambda=warmup_lambda
+                                ),
+                        StepLR(
+                                optimizer,
+                                step_size=args.train.decay_step,
+                                gamma=args.train.gamma,
+                                last_epoch=initial_global_step - 2
+                            )
+                        ],
+            milestones=[warmup_step]
+        )
+    # scheduler = lr_scheduler.StepLR(optimizer, step_size=args.train.decay_step, gamma=args.train.gamma, last_epoch=initial_global_step-2)
+    print(optimizer.param_groups[0]['lr'])
+
     # device
     if args.device == 'cuda':
         torch.cuda.set_device(args.env.gpu_id)

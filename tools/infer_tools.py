@@ -172,7 +172,7 @@ class DiffusionSVC:
     def extract_f0(self, audio, key=0, sr=44100, silence_front=0, HZ_MAX = 0, HZ_MIN = 0 ,LOG_HZ_MIN= 0, LOG_HZ_MAX=0):
         assert self.f0_extractor is not None
         f0 = self.f0_extractor.extract(audio, uv_interp=True, device=self.device, silence_front=silence_front, sr=sr)
-        f0 = shift_f0_contour(f0, HZ_MAX=HZ_MAX, HZ_MIN=HZ_MIN, max_semitone=12)
+        f0 = shift_f0_contour(f0, HZ_MAX=HZ_MAX, HZ_MIN=HZ_MIN, max_semitone=20)
         f0 = compress_low_f0(f0, LOG_HZ_MAX = LOG_HZ_MAX, LOG_HZ_MIN = LOG_HZ_MIN, gammaLow=0.25, gammaHigh=0.3)
         f0 = torch.from_numpy(f0).float().to(self.device).unsqueeze(-1).unsqueeze(0)
         f0 = f0 * 2 ** (float(key) / 12)
