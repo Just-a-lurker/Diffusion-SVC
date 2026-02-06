@@ -78,6 +78,7 @@ class NsfHifiGAN(torch.nn.Module):
     def forward(self, mel, f0):
         if self.model is None:
             print('| Load HifiGAN: ', self.model_path)
+            print(self.h)
             self.model, self.h = load_model(self.model_path, device=self.device)
         with torch.no_grad():
             c = mel.transpose(1, 2)
