@@ -57,7 +57,7 @@ def compress_low_f0(f0, LOG_HZ_MAX, LOG_HZ_MIN, gammaLow=0.25, gammaHigh =0.5):
 def hz_extrapolate_limit(f_ref_hz, semitone_down):
     return f_ref_hz * (2 ** (-semitone_down / 12))
 
-def shift_f0_contourB(
+def shift_f0_contour(
     f0,
     HZ_MIN,
     HZ_MAX,
@@ -74,27 +74,27 @@ def shift_f0_contourB(
     high = f0 > HZ_MAX
     low = (f0 < HZ_MIN) & voiced
 
-    # if med < HZ_MIN:
-    #     print("LOW:")
-    #     mean_low = np.mean(f0[low])
-    #     print(mean_low)
-    #     semitone = 12 * np.log2(HZ_MIN / mean_low)
-    # elif med > HZ_MAX:
-    #     print("HIGH:")
-    #     mean_high = np.mean(f0[high])
-    #     print(mean_high)
-    #     semitone = 12 * np.log2(HZ_MAX / mean_high)
-    high_mean = np.mean(f0[high]) if np.any(high) else 0
-    low_mean = np.mean(f0[low]) if np.any(low) else 0
-    semitone_low = 12 * np.log2(HZ_MIN / low_mean) if low_mean!=0 else 0
-    semitone_high = 12 * np.log2(HZ_MAX / high_mean) if high_mean!=0 else 0
-    semitone = semitone_low + semitone_high
+    if med < HZ_MIN:
+        print("LOW:")
+        mean_low = np.mean(f0[low])
+        print(mean_low)
+        semitone = 12 * np.log2(HZ_MIN / mean_low)
+    elif med > HZ_MAX:
+        print("HIGH:")
+        mean_high = np.mean(f0[high])
+        print(mean_high)
+        semitone = 12 * np.log2(HZ_MAX / mean_high)
+    # high_mean = np.mean(f0[high]) if np.any(high) else 0
+    # low_mean = np.mean(f0[low]) if np.any(low) else 0
+    # semitone_low = 12 * np.log2(HZ_MIN / low_mean) if low_mean!=0 else 0
+    # semitone_high = 12 * np.log2(HZ_MAX / high_mean) if high_mean!=0 else 0
+    # semitone = semitone_low + semitone_high
 
     # clamp theo khả năng extrapolate của model
     semitone = np.clip(semitone, -max_semitone, max_semitone)
     print(semitone)
-    print(semitone_high)
-    print(semitone_low)
+    # print(semitone_high)
+    # print(semitone_low)
     print(med)
     print(HZ_MIN)
     print(HZ_MAX)
@@ -126,7 +126,7 @@ def shift_f0_contourB(
 
     return f0
 
-def shift_f0_contour(
+def shift_f0_contourB(
     f0,
     HZ_MIN,
     HZ_MAX,
