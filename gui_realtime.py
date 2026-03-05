@@ -98,12 +98,14 @@ class GUI:
         self.update_devices()
         self.default_input_device = self.input_devices[self.input_devices_indices.index(sd.default.device[0])]
         self.default_output_device = self.output_devices[self.output_devices_indices.index(sd.default.device[1])]
-        self.Q1 = getQ(1)
-        self.Q3 = getQ(3)
+        self.Q1 = getQ(1, self.config.spk_id)
+        self.Q3 = getQ(3, self.config.spk_id)
         self.HZ_MAX = self.Q3
         self.HZ_MIN = self.Q1
         self.LOG_HZ_MIN = np.log(hz_extrapolate_limit(self.Q1, 4))
         self.LOG_HZ_MAX = np.log(hz_extrapolate_limit(self.Q3, -5))
+        self.manual_semitone = -2
+        self.manual_semitone_enable = False
         self.launcher()  # start
 
     def launcher(self):
@@ -142,6 +144,25 @@ class GUI:
                 [sg.Text(i18n("变调")),
                  sg.Slider(range=(-24, 24), orientation='h', key='pitch', resolution=1, default_value=0,
                            enable_events=True)],
+                [
+                    sg.Checkbox(
+                        "Manual Semitone",
+                        key="manual_semitone_enable",
+                        default=False,
+                        enable_events=True
+                    ),
+
+                    sg.Slider(
+                        range=(-12, 12),
+                        orientation="h",
+                        resolution=0.1,
+                        default_value=-2,
+                        key="manual_semitone",
+                        size=(20, 15),
+                        enable_events=True,
+                        disabled=True
+                    )
+                ],
                 [sg.Text(i18n("采样率")), sg.Input(key='samplerate', default_text='44100', size=8)],
                 [sg.Checkbox(text=i18n('启用捏音色功能'), default=False, key='spk_mix', enable_events=True),
                  sg.Button(i18n("设置混合音色"), key='set_spk_mix')]
@@ -189,6 +210,20 @@ class GUI:
         self.window['diff_acc'].bind('<Return>', '')
         self.event_handler()
 
+    def update_pitch_range(self):
+        self.Q1 = getQ(1, self.config.spk_id)
+        self.Q3 = getQ(3, self.config.spk_id)
+
+        self.HZ_MAX = self.Q3
+        self.HZ_MIN = self.Q1
+
+        self.LOG_HZ_MIN = np.log(hz_extrapolate_limit(self.Q1, 4))
+        self.LOG_HZ_MAX = np.log(hz_extrapolate_limit(self.Q3, -5))
+
+        print("Updated speaker:", self.config.spk_id)
+        print("HZ_MIN:", self.HZ_MIN)
+        print("HZ_MAX:", self.HZ_MAX)
+
     def event_handler(self):
         '''事件处理'''
         global flag_vc
@@ -227,10 +262,19 @@ class GUI:
                 self.config.diff_method = values['diff_method']
             elif event == 'spk_id':
                 self.config.spk_id = int(values['spk_id'])
+                self.update_pitch_range()
             elif event == 'threhold':
                 self.config.threhold = values['threhold']
             elif event == 'pitch':
                 self.config.f_pitch_change = values['pitch']
+            elif event == "manual_semitone_enable":
+                self.manual_semitone_enable = values["manual_semitone_enable"]
+
+                self.window["manual_semitone"].update(
+                    disabled=not self.manual_semitone_enable
+                )
+            elif event == "manual_semitone":
+                self.manual_semitone = values["manual_semitone"]
             elif event == 'spk_mix':
                 self.config.use_spk_mix = values['spk_mix']
             elif event == 'set_spk_mix':
@@ -305,6 +349,7 @@ class GUI:
         torch.cuda.empty_cache()
         self.input_wav = np.zeros(self.input_frame, dtype='float32')
         self.sola_buffer = torch.zeros(self.crossfade_frame, device=self.device)
+        self.update_pitch_range()
         self.fade_in_window = torch.sin(
             np.pi * torch.arange(0, 1, 1 / self.crossfade_frame, device=self.device) / 2) ** 2
         self.fade_out_window = 1 - self.fade_in_window
@@ -346,6 +391,10 @@ class GUI:
         self.input_wav[-self.block_frame:] = librosa.to_mono(indata.T)
 
         # infer
+        if self.manual_semitone_enable:
+            manual_semitone = self.manual_semitone
+        else:
+            manual_semitone = None
         print("f0_medel: "+self.svc_model.f0_model)
         _audio, _model_sr = self.svc_model.infer_from_audio_for_realtime(
             audio=self.input_wav,
@@ -367,7 +416,8 @@ class GUI:
             HZ_MAX=self.HZ_MAX,
             HZ_MIN = self.HZ_MIN,
             LOG_HZ_MIN=self.LOG_HZ_MIN,
-            LOG_HZ_MAX = self.LOG_HZ_MAX
+            LOG_HZ_MAX = self.LOG_HZ_MAX,
+            manual_semitone=manual_semitone
         )
 
         # debug sola
@@ -394,6 +444,7 @@ class GUI:
         cor_den = torch.sqrt(
             F.conv1d(conv_input ** 2, torch.ones(1, 1, self.crossfade_frame, device=self.device)) + 1e-8)
         sola_shift = torch.argmax(cor_nom[0, 0] / cor_den[0, 0])
+        sola_shift=0
         temp_wav = temp_wav[sola_shift: sola_shift + self.block_frame + self.crossfade_frame]
         print('sola_shift: ' + str(int(sola_shift)))
 

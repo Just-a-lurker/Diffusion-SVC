@@ -163,6 +163,15 @@ def parse_args(args=None, namespace=None):
         default=0,
         help="index_ratio, if > 0 will use index | default: 0",
     )
+
+    parser.add_argument(
+        "-mn",
+        "--manual_semitone",
+        type=float,
+        required=False,
+        default=None,
+        help="manual_semitone | default: 0",
+    )
     return parser.parse_args(args=args, namespace=namespace)
 
 
@@ -193,12 +202,16 @@ if __name__ == '__main__':
     in_wav, in_sr = librosa.load(cmd.input, sr=None)
     if len(in_wav.shape) > 1:
         in_wav = librosa.to_mono(in_wav)
-    Q1 = getQ(1)
-    Q3 = getQ(3)
+    Q1 = getQ(1,cmd.spk_id)
+    Q3 = getQ(3,cmd.spk_id)
     HZ_MAX = Q3
     HZ_MIN = Q1
     LOG_HZ_MIN = np.log(hz_extrapolate_limit(Q1, 5))
     LOG_HZ_MAX = np.log(hz_extrapolate_limit(Q3, -6))
+    if cmd.manual_semitone is None:
+        manual_semitone = None
+    else:
+        manual_semitone = cmd.manual_semitone
     # infer
     out_wav, out_sr = diffusion_svc.infer_from_long_audio(
         in_wav, sr=in_sr,
@@ -218,7 +231,8 @@ if __name__ == '__main__':
         HZ_MAX=HZ_MAX,
         HZ_MIN= HZ_MIN,
         LOG_HZ_MIN=LOG_HZ_MIN,
-        LOG_HZ_MAX=LOG_HZ_MAX
+        LOG_HZ_MAX=LOG_HZ_MAX,
+        manual_semitone= manual_semitone
     )
     # save
     sf.write(cmd.output, out_wav, out_sr)

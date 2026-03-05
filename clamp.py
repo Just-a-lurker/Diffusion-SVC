@@ -62,7 +62,8 @@ def shift_f0_contour(
     HZ_MIN,
     HZ_MAX,
     max_semitone=5,
-    safety_semitone=2
+    safety_semitone=2,
+    manual_semitone = None
 ):
     f0 = f0.astype(np.float32, copy=False)
     voiced = f0 > 65
@@ -91,7 +92,10 @@ def shift_f0_contour(
     # semitone = semitone_low + semitone_high
 
     # clamp theo khả năng extrapolate của model
-    semitone = np.clip(semitone, -max_semitone, max_semitone)
+    if manual_semitone is not None:
+        semitone = manual_semitone
+    else:
+        semitone = np.clip(semitone, -max_semitone, max_semitone)
     print(semitone)
     # print(semitone_high)
     # print(semitone_low)
@@ -130,7 +134,7 @@ def shift_f0_contourB(
     f0,
     HZ_MIN,
     HZ_MAX,
-    max_semitone=5
+    max_semitone=10
 ):
     #f0 = f0.astype(np.float32, copy=False)
     voiced = f0 > 65
@@ -138,7 +142,6 @@ def shift_f0_contourB(
         return f0
     med = np.median(f0[voiced])
     semitone = 0.0
-
     if med < HZ_MIN:
         semitone = 12 * np.log2(HZ_MIN / med)
     elif med > HZ_MAX:
