@@ -84,6 +84,8 @@ if __name__ == '__main__':
     # load parameters
     optimizer = torch.optim.AdamW(model.parameters())
     initial_global_step, model, optimizer = utils.load_model(args.env.expdir, model, optimizer, device=args.device)
+    # optimizer = torch.optim.AdamW(model.parameters()) #Reset
+    # initial_global_step = 0 #Reset
     for param_group in optimizer.param_groups:
         param_group['initial_lr'] = args.train.lr
         param_group['lr'] = args.train.lr * args.train.gamma ** max((initial_global_step - 2) // args.train.decay_step, 0)

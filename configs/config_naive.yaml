@@ -36,7 +36,7 @@ env:
 train:
   num_workers: 2 # If your cpu and gpu are both very strong, set to 0 may be faster!
   amp_dtype: fp32 # naive model only can ues fp32, else nan
-  batch_size: 48
+  batch_size: 64
   cache_all_data: false # Save Internal-Memory or Graphics-Memory if it is false, but may be slow
   cache_device: 'cuda' # Set to 'cuda' to cache the data into the Graphics-Memory, fastest speed for strong gpu
   cache_fp16: true
@@ -44,9 +44,9 @@ train:
   interval_log: 10
   interval_val: 2000
   interval_force_save: 10000
-  lr: 0.0001
+  lr: 0.00005
   decay_step: 15000
   gamma: 0.5
   weight_decay: 0
   save_opt: false
-  warmup_step: 3000
+  warmup_step: 500

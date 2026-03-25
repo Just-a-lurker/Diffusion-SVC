@@ -10,6 +10,10 @@ import argparse
 import time
 from getf0Quantile import getQ
 from clamp import hz_extrapolate_limit
+import subprocess
+import tempfile
+import os
+import soundfile as sf
 
 flag_vc = False
 
@@ -106,6 +110,8 @@ class GUI:
         self.LOG_HZ_MAX = np.log(hz_extrapolate_limit(self.Q3, -5))
         self.manual_semitone = -2
         self.manual_semitone_enable = False
+        self.ram_audio_data = None
+        self.ram_audio_sr = None
         self.launcher()  # start
 
     def launcher(self):
@@ -198,6 +204,17 @@ class GUI:
                     [sg.Text(text=i18n('!强烈建议使用组合模型浅扩散!'), key='ZHANWEI4')]
                 ], title=i18n('扩散设置')),
             ],
+            [sg.Frame(layout=[
+                [sg.Text("File đầu vào (Input)"), sg.Input(key='file_input'),
+                 sg.FileBrowse('Chọn file', file_types=(("Audio Files", "*.wav *.mp3 *.flac"),))],
+                [sg.Text("Naive Model (Tùy chọn)"), sg.Input(key='nmodel_path'),
+                 sg.FileBrowse('Chọn file', file_types=(("Model Files", "*.pt"),))],
+                [sg.Button("Chuyển đổi File", key="infer_file"),
+                 sg.Button("Nghe thử", key="play_audio", disabled=True),
+                 sg.Button("Dừng phát", key="stop_audio", disabled=True),
+                 sg.Button("Lưu file", key="save_audio", disabled=True)]
+            ], title='Xử lý Audio theo File Offline')
+            ],
             [sg.Button(i18n("开始音频转换"), key="start_vc"), sg.Button(i18n("停止音频转换"), key="stop_vc"),
              sg.Text(i18n('推理所用时间(ms):')), sg.Text('0', key='infer_time')]
         ]
@@ -223,6 +240,88 @@ class GUI:
         print("Updated speaker:", self.config.spk_id)
         print("HZ_MIN:", self.HZ_MIN)
         print("HZ_MAX:", self.HZ_MAX)
+
+    def run_file_inference(self, values):
+        input_wav = values['file_input']
+        model_path = values['sg_model']
+        nmodel_path = values['nmodel_path']
+
+        spk_id = values['spk_id']
+        keychange = values['pitch']
+        method = values['diff_method']
+        kstep = values['k_step']
+        f0_mode = values['f0_mode']
+
+        manual_semitone_enable = values['manual_semitone_enable']
+        manual_semitone = values['manual_semitone']
+
+        if not input_wav or not model_path:
+            sg.popup_error("Vui lòng chọn đầy đủ File đầu vào và Model!", title="Lỗi")
+            return
+
+        import sys
+
+        # Tạo file tạm thời để main.py ghi vào
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".wav")
+        os.close(temp_fd)  # Đóng file descriptor ngay để main.py không bị lỗi quyền truy cập
+
+        cmd = [
+            sys.executable, "main.py",
+            "-i", input_wav,
+            "-model", model_path,
+            "-o", temp_path,  # Trỏ output vào file tạm
+            "-id", str(spk_id),
+            "-k", str(keychange),
+            "-method", method,
+            "-kstep", str(kstep),
+            "-pe", f0_mode
+        ]
+
+        if nmodel_path:
+            cmd.extend(["-nmodel", nmodel_path])
+        if manual_semitone_enable:
+            cmd.extend(["-mn", str(manual_semitone)])
+
+        # Khóa các nút trong lúc chờ
+        self.window['infer_file'].update(disabled=True)
+        self.window['play_audio'].update(disabled=True)
+        self.window['stop_audio'].update(disabled=True)
+        self.window['save_audio'].update(disabled=True)
+
+        self.loading_window = sg.Window("Đang xử lý",
+                                        [[sg.Text(
+                                            "Đang xử lý file... Vui lòng xem tiến độ trên cửa sổ Console/Terminal.")]],
+                                        disable_close=True,
+                                        keep_on_top=True,
+                                        finalize=True)
+
+        def process_thread():
+            try:
+                subprocess.run(cmd, check=True)
+
+                # Khi main.py chạy xong, đọc file tạm vào RAM
+                data, sr = sf.read(temp_path)
+                self.ram_audio_data = data
+                self.ram_audio_sr = sr
+
+                # Xóa file tạm, giờ audio đã nằm hoàn toàn trên biến RAM
+                os.remove(temp_path)
+
+                self.window.write_event_value('-INFER_DONE-',
+                                              "Chuyển đổi file thành công! Bạn có thể nghe thử hoặc lưu file.")
+            except subprocess.CalledProcessError as e:
+                self.window.write_event_value('-INFER_ERROR-', f"Lệnh cmd thất bại với mã lỗi {e.returncode}")
+            except Exception as e:
+                self.window.write_event_value('-INFER_ERROR-', f"Có lỗi xảy ra: {e}")
+            finally:
+                # Đảm bảo dọn dẹp file tạm nếu bị crash giữa chừng
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+
+        threading.Thread(target=process_thread, daemon=True).start()
 
     def event_handler(self):
         '''事件处理'''
@@ -293,6 +392,46 @@ class GUI:
             elif event == 'save_config' and not flag_vc:
                 self.set_values(values)
                 self.config.save(values['config_file_dir'])
+            elif event == 'infer_file':
+                self.run_file_inference(values)
+            elif event == '-INFER_DONE-':
+                if hasattr(self, 'loading_window') and self.loading_window:
+                    self.loading_window.close()
+
+                self.window['infer_file'].update(disabled=False)
+                # Mở khóa các nút chức năng khi đã có dữ liệu trên RAM
+                self.window['play_audio'].update(disabled=False)
+                self.window['stop_audio'].update(disabled=False)
+                self.window['save_audio'].update(disabled=False)
+
+                sg.popup(values[event], title="Hoàn tất")
+
+            elif event == 'play_audio':
+                if self.ram_audio_data is not None:
+                    # Phát âm thanh qua thiết bị Output đã chọn ở GUI
+                    sd.play(self.ram_audio_data, self.ram_audio_sr)
+
+            elif event == 'stop_audio':
+                sd.stop()
+
+            elif event == 'save_audio':
+                if self.ram_audio_data is not None:
+                    # Mở hộp thoại cho người dùng tự chọn nơi lưu
+                    save_path = sg.popup_get_file(
+                        "Lưu file âm thanh",
+                        save_as=True,
+                        file_types=(("WAV File", "*.wav"),),
+                        default_extension=".wav"
+                    )
+                    if save_path:
+                        sf.write(save_path, self.ram_audio_data, self.ram_audio_sr)
+                        sg.popup(f"Đã lưu file thành công tại:\n{save_path}", title="Đã lưu")
+            elif event == '-INFER_ERROR-':
+                # Đóng cửa sổ thông báo đang xử lý
+                if hasattr(self, 'loading_window') and self.loading_window:
+                    self.loading_window.close()
+                self.window['infer_file'].update(disabled=False)
+                sg.popup_error(values[event], title="Lỗi")
             elif event != 'start_vc' and flag_vc:
                 self.stop_stream()
 
@@ -499,5 +638,5 @@ class GUI:
 
 
 if __name__ == "__main__":
-    i18n = I18nAuto(model='gui_realtime.py', language=None)
+    i18n = I18nAuto(model='gui_realtime.py', language='vi_VN')
     gui = GUI()
