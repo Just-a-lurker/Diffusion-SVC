@@ -112,6 +112,10 @@ class GUI:
         self.manual_semitone_enable = False
         self.ram_audio_data = None
         self.ram_audio_sr = None
+        self.is_playing = False
+        self.audio_duration = 0.0
+        self.start_play_time = 0.0
+        self.current_seek_time = 0.0
         self.launcher()  # start
 
     def launcher(self):
@@ -212,7 +216,11 @@ class GUI:
                 [sg.Button("Chuyển đổi File", key="infer_file"),
                  sg.Button("Nghe thử", key="play_audio", disabled=True),
                  sg.Button("Dừng phát", key="stop_audio", disabled=True),
-                 sg.Button("Lưu file", key="save_audio", disabled=True)]
+                 sg.Button("Lưu file", key="save_audio", disabled=True)],
+                # thanh tua và thời gia
+                [sg.Slider(range=(0, 100), default_value=0, orientation='h', key='seek_bar', enable_events=True,
+                           disabled=True, expand_x=True, resolution=0.1, disable_number_display=True),
+                 sg.Text("00:00 / 00:00", key="time_text", size=(12, 1))]
             ], title='Xử lý Audio theo File Offline')
             ],
             [sg.Button(i18n("开始音频转换"), key="start_vc"), sg.Button(i18n("停止音频转换"), key="stop_vc"),
@@ -226,6 +234,11 @@ class GUI:
         self.window['k_step'].bind('<Return>', '')
         self.window['diff_acc'].bind('<Return>', '')
         self.event_handler()
+
+    def format_time(self, seconds):
+        mins = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{mins:02d}:{secs:02d}"
 
     def update_pitch_range(self):
         self.Q1 = getQ(1, self.config.spk_id)
@@ -326,10 +339,15 @@ class GUI:
     def event_handler(self):
         '''事件处理'''
         global flag_vc
-        while True:  # 事件处理循环
-            event, values = self.window.read()
-            print('event: ' + event)
-            if event == sg.WINDOW_CLOSED:  # 如果用户关闭窗口
+        while True:
+            # Thêm timeout=100 để giao diện tự làm mới mỗi 100ms
+            event, values = self.window.read(timeout=100)
+
+            # Bỏ in event timeout để console không bị spam
+            if event != sg.TIMEOUT_EVENT:
+                print('event: ' + str(event))
+
+            if event == sg.WINDOW_CLOSED:
                 flag_vc = False
                 exit()
             elif event == 'start_vc' and not flag_vc:
@@ -397,22 +415,57 @@ class GUI:
             elif event == '-INFER_DONE-':
                 if hasattr(self, 'loading_window') and self.loading_window:
                     self.loading_window.close()
-
                 self.window['infer_file'].update(disabled=False)
-                # Mở khóa các nút chức năng khi đã có dữ liệu trên RAM
                 self.window['play_audio'].update(disabled=False)
                 self.window['stop_audio'].update(disabled=False)
                 self.window['save_audio'].update(disabled=False)
+                # Cập nhật thông tin thanh tua
+                if self.ram_audio_data is not None:
+                    self.audio_duration = self.ram_audio_data.shape[0] / self.ram_audio_sr
+                    self.window['seek_bar'].update(range=(0, self.audio_duration), disabled=False, value=0)
+                    self.window['time_text'].update(f"00:00 / {self.format_time(self.audio_duration)}")
+                    self.current_seek_time = 0.0
+                    self.is_playing = False
 
                 sg.popup(values[event], title="Hoàn tất")
-
+            # Sự kiện UI cập nhật theo thời gian thực (mỗi 100ms)
+            elif event == sg.TIMEOUT_EVENT and self.is_playing:
+                self.current_seek_time = time.time() - self.start_play_time
+                if self.current_seek_time >= self.audio_duration:
+                    # Tự động dừng khi hết bài
+                    self.is_playing = False
+                    self.current_seek_time = 0.0
+                    self.window['seek_bar'].update(value=0)
+                    self.window['time_text'].update(f"00:00 / {self.format_time(self.audio_duration)}")
+                else:
+                    self.window['seek_bar'].update(value=self.current_seek_time)
+                    self.window['time_text'].update(
+                        f"{self.format_time(self.current_seek_time)} / {self.format_time(self.audio_duration)}")
             elif event == 'play_audio':
                 if self.ram_audio_data is not None:
-                    # Phát âm thanh qua thiết bị Output đã chọn ở GUI
-                    sd.play(self.ram_audio_data, self.ram_audio_sr)
-
+                    # Tính toán vị trí frame bắt đầu dựa trên thời gian hiện tại
+                    start_frame = int(self.current_seek_time * self.ram_audio_sr)
+                    sd.stop()
+                    sd.play(self.ram_audio_data[start_frame:], self.ram_audio_sr)
+                    self.start_play_time = time.time() - self.current_seek_time
+                    self.is_playing = True
             elif event == 'stop_audio':
                 sd.stop()
+                self.is_playing = False
+                self.current_seek_time = 0.0
+                self.window['seek_bar'].update(value=0)
+                self.window['time_text'].update(f"00:00 / {self.format_time(self.audio_duration)}")
+            elif event == 'seek_bar':
+                if self.ram_audio_data is not None:
+                    self.current_seek_time = values['seek_bar']
+                    self.window['time_text'].update(
+                        f"{self.format_time(self.current_seek_time)} / {self.format_time(self.audio_duration)}")
+                    # Nếu đang phát mà người dùng kéo tua, tự động phát tiếp từ đoạn mới
+                    if self.is_playing:
+                        start_frame = int(self.current_seek_time * self.ram_audio_sr)
+                        sd.stop()
+                        sd.play(self.ram_audio_data[start_frame:], self.ram_audio_sr)
+                        self.start_play_time = time.time() - self.current_seek_time
 
             elif event == 'save_audio':
                 if self.ram_audio_data is not None:
