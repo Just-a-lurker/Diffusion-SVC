@@ -163,7 +163,7 @@ class GUI:
                     ),
 
                     sg.Slider(
-                        range=(-12, 12),
+                        range=(-24, 24),
                         orientation="h",
                         resolution=0.1,
                         default_value=-2,
@@ -485,7 +485,8 @@ class GUI:
                     self.loading_window.close()
                 self.window['infer_file'].update(disabled=False)
                 sg.popup_error(values[event], title="Lỗi")
-            elif event != 'start_vc' and flag_vc:
+            elif flag_vc and event not in ['start_vc', sg.TIMEOUT_EVENT, 'play_audio', 'stop_audio', 'save_audio',
+                                           'seek_bar', 'infer_file', '-INFER_DONE-', '-INFER_ERROR-']:
                 self.stop_stream()
 
     def set_values(self, values):
