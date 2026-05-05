@@ -1,66 +1,72 @@
-Language: [English](./README_en.md) **简体中文**
+Language: [简体中文](./README_cn.md) **English**
+
+**This English readme will not update first time, please read [简体中文](./README.md) for latest info。**
+
+I am not good at English. If there are any errors, please point them out.
 
 # Diffusion-SVC
 [![Open in OpenXLab](https://cdn-static.openxlab.org.cn/app-center/openxlab_app.svg)](https://openxlab.org.cn/apps/detail/CNChiTu/DiffusionSVC-V1-Demo)
-[![Colab_CN](https://img.shields.io/static/v1?label=Colab&message=Notebook&color=F9AB00&logo=googlecolab&style=flat-square)](https://colab.research.google.com/github/CNChTu/Diffusion-SVC/blob/main/Diffusion_SVC_CN.ipynb)
+[![Colab_CN](https://img.shields.io/static/v1?label=Colab&message=Notebook&color=F9AB00&logo=googlecolab&style=flat-square)](https://colab.research.google.com/github/CNChTu/Diffusion-SVC/blob/main/Diffusion_SVC_EN.ipynb)
 [![madewithlove](https://forthebadge.com/images/badges/built-with-love.svg)](https://github.com/CNChTu/Diffusion-SVC/)
 [![Discord](https://img.shields.io/discord/1044927142900809739?color=%23738ADB&label=Discord&style=for-the-badge)](https://discord.gg/jvA5c2xzSE)
 
-此仓库是[DDSP-SVC](https://github.com/yxlllc/DDSP-SVC)仓库的扩散部分的单独存放。可单独训练和推理。
+This repository is a separate storage for the diffusion part of the [DDSP-SVC](https://github.com/yxlllc/DDSP-SVC) repository. It can be trained and inferred independently.
 ***
 
-**Diffusion SVC 2.0 即将到来，可在`v2.0_dev`分支提前体验：[前往分支](https://github.com/CNChTu/Diffusion-SVC/tree/v2.0_dev)**
+~~Diffusion SVC 2.0 is coming soon! You can preview it in the `v2.0_dev` branch: [Go to branch](https://github.com/CNChTu/Diffusion-SVC/tree/v2.0_dev)**~~
+
+Due to compatibility issues with 1.0 and numerous experiments, the code in version 2.0 is quite messy, so we'll skip it and move on to the brand new 3.0.
+
+**Diffusion SVC 3.0 is coming soon! You can preview it in the `v3.0_dev` branch: [Go to branch](https://github.com/CNChTu/Diffusion-SVC/tree/v3.0_dev)**
 
 ***
-**最近更新：使用本仓库的naive模型和浅扩散模型搭配可以用极低训练成本达到比单纯扩散模型更好的效果，强力推荐。但是小网络的naive模型泛化能力较弱，在小数据集上可能会有音域问题，这个时候naive模型微调不能训练太多步数(这会让底模退化)，前级也可以考虑更换为无限音域的ddsp模型。**
-<br>效果和介绍见[[介绍视频(暂未完成)]]()
-**欢迎加群交流讨论：882426004**
+**Recent update: The use of the naive model and the shallow Diffusion model of the repository can achieve better results than the simple Diffusion model with extremely low training costs, which is strongly recommended.However, the Naive model has weak generalization ability and may have too small f0 range on small datasets. At this point, the Naive model cannot train too many steps for fine-tuning (which will degrade the base model), and the front stage can also be considered to be replaced with an infinite range ddsp model.**
+<br>Samples and introductions can be found in [[Introduction Video(Not done yet)]]()
+
 ![Diagram](doc/diagram.jpg)
-## 0.简介
-Diffusion-SVC 是[DDSP-SVC](https://github.com/yxlllc/DDSP-SVC)仓库的扩散部分的单独存放。可单独训练和推理。
+## 0. Introduction
+Diffusion-SVC is a separate storage for the diffusion part of the [DDSP-SVC](https://github.com/yxlllc/DDSP-SVC) repository. It can be trained and inferred independently.
 
-相比于比较著名的 [Diff-SVC](https://github.com/prophesier/diff-svc), 本项目的显存占用少得多，训练和推理速度更快，并针对浅扩散和实时用途有专门优化。可以在较强的GPU上实时推理。配合本项目的naive模型进行浅扩散，即使是较弱的GPU也可以实时生成质量优秀的音频。
+Compared with the well-known [Diff-SVC](https://github.com/prophesier/diff-svc), this project consumes much less graphic memory, has faster training and inference speed, and is specially optimized for shallow diffusion and real-time use. It can perform real-time inference on a powerful GPU.By combining with the Naive model of this project for shallow diffusion, even weaker GPUs can generate high-quality audio in real-time.
 
-如果训练数据和输入源的质量都非常高，Diffusion-SVC可能拥有最好的转换效果。
+If the quality of the training data and the input source are both very high, Diffusion-SVC may have the best conversion effect.
 
-本项目可以很容易的级联在别的声学模型之后进行浅扩散，以改善最终的输出效果或降低性能占用。例如在[DDSP-SVC](https://github.com/yxlllc/DDSP-SVC)和本项目的**naive模型**后级联Diffusion-SVC，可进一步减少需要的扩散步数并得到高质量的输出。
+This project can easily cascade shallow diffusion after other Acoustic model to improve the final output effect or reduce the performance occupancy. For example, cascading Diffusion SVC after the **Naive model** of this project or [DDSP SVC](https://github.com/yxlllc/DDSP-SVC) can further reduce the required diffusion steps and obtain high-quality output.
 
-除此之外，本项目还可以单独训练浅扩散所需的降噪步数而不训练完整的从高斯噪声开始的降噪过程，这可以提高训练速度并改善质量，更多信息见下文。
+In addition, this project can also train the number of noise reduction steps required for shallow diffusion without training the complete noise reduction process starting from Gaussian noise, which can improve the training speed and quality. See the following for more information.
 
-免责声明：请确保仅使用**合法获得的授权数据**训练 Diffusion-SVC 模型，不要将这些模型及其合成的任何音频用于非法目的。 本库作者不对因使用这些模型检查点和音频而造成的任何侵权，诈骗等违法行为负责。
+Disclaimer: Please ensure to only use **legally obtained authorized data** to train the Diffusion-SVC model, and do not use these models and any audio synthesized by them for illegal purposes. The author of this library is not responsible for any infringements, scams, and other illegal acts caused by the use of these model checkpoints and audio.
 
-## 1. 安装依赖
-1. 安装PyTorch：我们推荐从 **[PyTorch 官方网站 ](https://pytorch.org/)** 下载 PyTorch.
-
-2. 安装依赖
+## 1. Install dependencies
+1. Install PyTorch: We recommend first downloading PyTorch from the **[PyTorch official website](https://pytorch.org/)**, then run:
 ```bash
 pip install -r requirements.txt 
 ```
 
-## 2. 配置预训练模型
-- **(必要操作)** 下载预训练 [ContentVec](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) 编码器并将其放到 `pretrain` 文件夹。[经过裁剪的ContentVec镜像](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/checkpoint_best_legacy_500.pt)有完全一样的效果，但大小只有190MB。
-  - 注意：也可以使用别的特征提取，但仍然优先推荐ContentVec。支持的所有特征提取见`tools/tools.py`中的`Units_Encoder`类。
-- **(必要操作)** 从 [DiffSinger 社区声码器项目](https://openvpi.github.io/vocoders) 下载预训练声码器，并解压至 `pretrain/` 文件夹。
-  -  注意：你应当下载名称中带有`nsf_hifigan`的压缩文件，而非`nsf_hifigan_finetune`。
-- ~~如果需要使用声纹模型，则需要将配置文件的`use_speaker_encoder`设置为`true`, 并从[这里](https://drive.google.com/drive/folders/15oeBYf6Qn1edONkVLXe82MzdIi3O_9m3?usp=sharing)下载预训练声纹模型,该模型来自[mozilla/TTS](https://github.com/mozilla/TTS/wiki/Released-Models)。~~
+## 2. Configure the requirement model
+- **(Required)** Download the pretrained [ContentVec](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) encoder and place it in the `pretrain` folder. [Cropped ContentVec images](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/checkpoint_best_legacy_500.pt) has the same effect, but only 190MB.
+  - Note: You can also use other feature extractors, but ContentVec is still highly recommended. All supported feature extractors can be found in the `Units_Encoder` class in `tools/tools.py`.
+- **(Required)** Download the pretrained vocoder from the [DiffSinger community vocoder project](https://openvpi.github.io/vocoders) and unzip it to the `pretrain/` folder.
+  -  Note: You should download the compressed file with `nsf_hifigan` in its name, not `nsf_hifigan_finetune`.
+- ~~If you need to use the voiceprint model, you need to set `use_speaker_encoder` in the configuration file to `true`, and download the pretrained voiceprint model from [here](https://drive.google.com/drive/folders/15oeBYf6Qn1edONkVLXe82MzdIi3O_9m3?usp=sharing). This model comes from [mozilla/TTS](https://github.com/mozilla/TTS/wiki/Released-Models).~~
 
-## 3. 预处理
+## 3. Preprocessing
 
-### 1. 配置训练数据集和验证数据集
+### 1. Setting up Training and Validation Datasets
 
-#### 1.1 手动配置：
+#### 1.1 Manual Configuration:
 
-将所有的训练集数据 (.wav 格式音频切片) 放到 `data/train/audio`,也可以是配置文件中指定的文件夹如`xxxx/yyyy/audio`。
+Place all training set data (.wav format audio clips) in the `data/train/audio` folder, or in a directory specified in the configuration file such as `xxxx/yyyy/audio`.
 
-将所有的验证集数据 (.wav 格式音频切片) 放到 `data/val/audio`,也可以是配置文件中指定的文件夹如`aaaa/bbbb/audio`。
+Place all validation set data (.wav format audio clips) in the `data/val/audio` folder, or in a directory specified in the configuration file such as `aaaa/bbbb/audio`.
 
-#### 1.2 程序随机选择：
+#### 1.2 Random Selection by Program :
 
-运行`python draw.py`,程序将帮助你挑选验证集数据（可以调整 `draw.py` 中的参数修改抽取文件的数量等参数）。
+Run `python draw.py`. The program will help you select validation set data (you can adjust parameters such as the number of files to be extracted in `draw.py`).
 
-#### 1.3文件夹结构目录展示：
-**注意：说话人id必须从1开始，不能从0开始；如果只有一个说话人则该说话人id必须为1**
-- 目录结构：
+#### 1.3 Folder Structure Directory Display:
+**Note: Speaker IDs must start from 1, not 0; if there is only one speaker, this speaker's ID must be 1.**
+- Directory Structure:
 
 ```
 data
@@ -89,143 +95,140 @@ data
 │    │    └─ ...
 ```
 
-#### 2. 正式预处理
+#### 2. Start Preprocessing
 ```bash
 python preprocess.py -c configs/config.yaml
 ```
-您可以在预处理之前修改配置文件 `configs/config.yaml`
+You can modify the configuration file `configs/config.yaml` before preprocessing.
 
-#### 3. 备注：
-1. 请保持所有音频切片的采样率与 yaml 配置文件中的采样率一致！（推荐使用[fap](https://github.com/fishaudio/audio-preprocess)进行重采样的等前处理）
+#### 3. Notes:
+1. Please ensure that the sampling rate of all audio clips matches the sampling rate specified in the yaml configuration file! (If pre processing such as resampling is required, it is recommended to use [fap](https://github.com/fishaudio/audio-preprocess))
 
-2. 长音频切成小段可以加快训练速度，但所有音频切片的时长不应少于 2 秒。如果音频切片太多，则需要较大的内存，配置文件中将 `cache_all_data` 选项设置为 false 可以解决此问题。
+2. Cutting long audio into smaller clips can speed up training, but the duration of all audio clips should not be less than 2 seconds. If there are too many audio clips, you will need more memory. Setting the `cache_all_data` option in the configuration file to false can solve this problem.
 
-3. 验证集的音频切片总数建议为 10 个左右，不要放太多，不然验证过程会很慢。
+3. It is suggested that the total number of audio clips in the validation set be about 10, don't put too many, otherwise the validation process will be slow.
 
-4. 如果您的数据集质量不是很高，请在配置文件中将 'f0_extractor' 设为 'crepe'。crepe 算法的抗噪性最好，但代价是会极大增加数据预处理所需的时间。
+4. If your dataset quality is not very high, please set the 'f0_extractor' in the configuration file to 'crepe'. The crepe algorithm has the best noise resistance, but it will significantly increase the time required for data preprocessing.
 
-5. 配置文件中的 ‘n_spk’ 参数将控制是否训练多说话人模型。如果您要训练**多说话人**模型，为了对说话人进行编号，所有音频文件夹的名称必须是**不大于 ‘n_spk’ 的正整数**
+5. The ‘n_spk’ parameter in the configuration file will control whether to train a multi-speaker model. If you want to train a **multi-speaker** model, to number the speakers, all audio folder names must be **integers no larger than ‘n_spk’**.
 
-## 4. 训练
+## 4. Training
 
-### 1. 不使用预训练数据进行训练：
+### 1. Training without pre-trained model:
 ```bash
 python train.py -c configs/config.yaml
 ```
 
-### 2. 预训练模型：
-- **我们强烈建议使用预训练模型进行微调，这将比直接训练容易和节省的多，并能达到比小数据集更高的上限。**
+### 2. Pre-trained Models:
+- **We strongly recommend fine-tuning with pre-trained models, which is easier and much more time-saving than training from scratch, and can achieve a higher limit than small datasets.**
 
-- **注意，在底模上微调需要使用和底模一样的编码器，如同为ContentVec，对别的编码器(如声纹)也是同理，还要注意模型的网络大小等参数相同。**
+- **Please note, fine-tuning on a base model requires using the same encoder as the base model, such as ContentVec, the same applies to other encoders (like voiceprint), and the model's network size and other parameters should be the same.**
 
 ****
-#### ！！！！！！！！！推荐训练浅扩散模型+naive模型！！！！！！！！！
-只训练k_step_max深度的浅扩散模型与naive模型的组合比单纯完全扩散的质量可能还要更高，同时训练速度更快。但是naive模型可能存在音域问题。
+#### ！！！！！！Recommend training Shallow Diffusion Model and Naive Model！！！！！！
+The combination of shallow Diffusion model that only train k_step_max depth and Naive model may have higher quality and faster training speed than pure full diffusion model. But the Naive model may have f0 range issues.
 ****
 
-### 2.1 训练完整过程的扩散预训练模型 
-（注意：whisper-ppg对应whisper的medium权重，whisper-ppg-large对应whisper的large-v2权重）
-| Units Encoder                                                                                                                                               | 网络大小   | 数据集                                        | 下载                                                                                                  |
-|-------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| [contentvec768l12(推荐)](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr)                                                                          | 512*20 | VCTK<br/>m4singer                          | [HuggingFace](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/contentvec768l12.7z)     |
-| [hubertsoft](https://github.com/bshall/hubert/releases/download/v0.1/hubert-soft-0d54a1f4.pt)                                                               | 512*20 | VCTK<br/>m4singer                          | [HuggingFace](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/hubertsoft.7z)           |
-| [whisper-ppg(仅支持sovits)](https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt) | 512*20 | VCTK<br/>m4singer<br/>opencpop<br/>kiritan | [HuggingFace](https://huggingface.co/Kakaru/sovits-whisper-pretrain/blob/main/diffusion/model_0.pt) |
+### 2.1 Pre training Diffusion model which training full depth  
+(Note: whisper-ppg corresponds to the medium-weight version of Whisper, while whisper-ppg-large corresponds to the large-v2-weight version of Whisper.)
+| Units Encoder                                                                                                                                                              | Network size | Datasets                                   | Model                                                                                               |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| [contentvec768l12(Recommend)](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr)                                                                                  | 512*20       | VCTK<br/>m4singer                          | [HuggingFace](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/contentvec768l12.7z)     |
+| [hubertsoft](https://github.com/bshall/hubert/releases/download/v0.1/hubert-soft-0d54a1f4.pt)                                                                              | 512*20       | VCTK<br/>m4singer                          | [HuggingFace](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/hubertsoft.7z)           |
+| [whisper-ppg(only can use with sovits)](https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt) | 512*20       | VCTK<br/>m4singer<br/>opencpop<br/>kiritan | [HuggingFace](https://huggingface.co/Kakaru/sovits-whisper-pretrain/blob/main/diffusion/model_0.pt) |
 
-补充一个用contentvec768l12编码的整活底模，数据集为`m4singer`/`opencpop`/`vctk`，不推荐使用，不保证没问题：[下载](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/contentvec768l12%2Bmakefunny.7z)。
+Here is an additional special pre-trained model using the contentvec768l12 encoder, the dataset is `m4singer`/`opencpop`/`vctk`. It is not recommended to use this and there's no guarantee it won't cause problems: [Download](https://huggingface.co/ChiTu/Diffusion-SVC/resolve/main/v0.1/contentvec768l12%2Bmakefunny.7z).
 
-### 2.2 只训练k_step_max深度的扩散预训练模型 
-（注意：whisper-ppg对应whisper的medium权重，whisper-ppg-large对应whisper的large-v2权重）
-| 所用编码器                                                                          | 网络大小   | k_step_max | 数据集               | 浅扩散模型下载                                                                                                                                       |
-|--------------------------------------------------------------------------------|--------|------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*30 | 100        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/shallow_512_30/model_0.pt) |
-| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*20 | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/shallow_512_20/model_0.pt) |
-| [contentvec256l9](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*20 | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/vec256l9_vol_51220_k200.zip) |
-| [contentvec256l9](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 768*30 | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/vec256l9_vol_76830_k200.zip) |
-| [whisper-ppg(仅支持sovits)](https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt) | 768*30 | 200        | PTDB<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/whisper_medium_vol_76830_k200.zip) |
-- **实验发现naive模型在小数据上有音域问题，请优先考虑用较少的步数微调naive模型或直接使用无限音域的ddsp模型**
+### 2.2 Diffusion pre training model that only trains k_step_max depth  
+(Note: whisper-ppg corresponds to the medium-weight version of Whisper, while whisper-ppg-large corresponds to the large-v2-weight version of Whisper.)
+| Units Encoder                                                                  | Network size | k_step_max | Datasets          | Diffusion Model                                                                                                                               |
+|--------------------------------------------------------------------------------|--------------|------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*30       | 100        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/shallow_512_30/model_0.pt) |
+| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*20       | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/shallow_512_20/model_0.pt) |
+| [contentvec256l9](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 512*20        | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/vec256l9_vol_51220_k200.zip) |
+| [contentvec256l9](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 768*30        | 200        | VCTK<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/vec256l9_vol_76830_k200.zip) |
+| [whisper-ppg(only can use with sovits)](https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt) | 768*30 | 200        | PTDB<br/>m4singer | [HuggingFace](https://huggingface.co/OOPPEENN/Diffusion-SVC-pretrained-models/resolve/main/whisper_medium_vol_76830_k200.zip) |
+- **The experiment found that the Naive model has f0 range issues on small data. Please prioritize fine-tuning the Naive model with fewer steps or directly using the infinite range ddsp model.**
 
-### 2.3 和2.2配套的Naive预训练模型和DDSP预训练模型
-| 所用编码器                                                                          | 网络大小  | 数据集               | 类型    | Naive模型下载                                                                                                                            |
-|--------------------------------------------------------------------------------|-------|-------------------|-------|--------------------------------------------------------------------------------------------------------------------------------------|
-| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 3*256 | VCTK<br/>m4singer | Naive | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/naive/model_0.pt) |
+### 2.3 Naive pre training model and DDSP pre training model matched with 2.2
+| Units Encoder                                                                  | Network size | Datasets          | Type  | Naive Model                                                                                                                          |
+|--------------------------------------------------------------------------------|--------------|-------------------|-------|--------------------------------------------------------------------------------------------------------------------------------------|
+| [contentvec768l12](https://ibm.ent.box.com/s/z1wgl1stco8ffooyatzdwsqn2psd9lrr) | 3*256        | VCTK<br/>m4singer | Naive | [HuggingFace](https://huggingface.co/datasets/ms903/Diff-SVC-refactor-pre-trained-model/resolve/main/Diffusion-SVC/naive/model_0.pt) |
 
+- **The pre training naive model can also be used for the previous naive model of the complete Diffusion model. And when fine-tuning the Shallow model, it is recommended to include the`decay_step`  in the configuration (such as 10000).**
 
-- **注意：naive预训练模型也可用于完整扩散模型的前级naive模型。且微调shallow模型时建议将配置文件中的`decay_step`改小(如10000)。**
+### 3. Training with Pretrained Models:
+1. We welcome pull requests for multi-speaker pretrained models (please use datasets that are authorized for open-source training).
+2. The pretrained models are mentioned above. Please note that the model must use the same encoder.
+3. Place the pretrained model named `model_0.pt` in the model export folder specified by the "expdir: exp/*****" parameter in `config.yaml`. If the folder doesn't exist, create a new one. The program will automatically load the pretrained model from this folder.
+4. Start training just like training without pretrained model.
 
-### 3. 使用预训练数据（底模）进行训练：
-1. 欢迎PR训练的多人底模 (请使用授权同意开源的数据集进行训练)。
-2. 预训练模型见上文,需要特别注意使用的是相同编码器的模型。
-3. 将名为`model_0.pt`的预训练模型, 放到`config.yaml`里面 "expdir: exp/*****" 参数指定的模型导出文件夹内, 没有就新建一个, 程序会自动加载该文件夹下的预训练模型。
-4. 同不使用预训练数据进行训练一样，启动训练。
-
-## 4.1. Naive模型与组合模型
-### Naive模型
-Naive模型是一个轻量级的svc模型，可以作为浅扩散的前级，训练方式与扩散模型一致，示例配置文件在`configs/config_naive.yaml`。其所需的预处理和扩散模型是一样的。
+## 4.1. Naive model and Combo model
+### Naive model
+The naive model is a lightweight svc model, which can be used as a precursor to shallow diffusion. The training method is consistent with the Diffusion model. The example configuration file is located in `configs/config_naive.yaml`。The pretreatment required is the same as the Diffusion model.
 ```bash
 python train.py -c configs/config_naive.yaml
 ```
-推理时使用`-nmodel`指向模型文件以使用，此时必须要浅扩散深度`-kstep`。
+When inferring, use`-nmodel`to point to the model file for use, and in this case, shallow diffusion depth `-kstep` must be used.
 
-### 组合模型
-使用`combo.py`可以将一个扩散模型和一个naive模型组合为一个combo模型，只需此模型就能实现浅扩散。这两个模型需要使用同样的参数训练(如同样的说话人id)，因为推理时他们也使用同样的参数推理。
+### Combo model
+Use `combo.py` to combine a Diffusion model and a naive model into a combo model. Only this model can achieve shallow diffusion. These two models need to be trained with the same parameters (like the speaker ID), as they also use the same parameters for inference.
 ```bash
 python combo.py -model <model> -nmodel <nmodel> -exp <exp> -n <name>
 ```
-使用以上命令将两个模型组合。其中`-model`是扩散模型的路径，`-nmodel`是naive模型的路径；与模型同目录下的配置文件也会自动读取。`-exp`是输出组合模型的目录，`-n`是保存的组合模型名。上述命令会在`<exp>`下输出组合模型为`<name>.ptc`。
+Use the above command to combine two models. Where `-model` is the path of the Diffusion model, and `-nmodel` is the path of the naive model；The config files in the same directory as the model will also be automatically read。`-exp`is the directory for outputting composite models，`-n` is the name of the saved composite model。The above command will output the combined model as `<name>.ptc` under`<exp>`.
 
-组合模型可直接在推理时作为扩散模型被正确加载用于浅扩散，而无需额外输入`-nmodel`来加载naive模型。
+The combined model can be directly loaded as a Diffusion model for shallow diffusion during reasoning, without the need to input `-nmodel` to load the naive model.
 
-## 4.2. 关于k_step_max与浅扩散
-***(示意图见readme开头)***
+## 4.2. About k_step_max and Shallow diffusion
+***(Schematic diagram at the beginning of readme)***
 
-浅扩散过程中，扩散模型只从一定加噪深度开始扩散，而无需从高斯噪声开始。因此，在浅扩散用途下扩散模型也可以只训练一定加噪深度而不用从高斯噪声开始。
+In the shallow diffusion process, the Diffusion model only starts from a certain noise depth, and does not need to start from Gaussian noise. Therefore, the Diffusion model for shallow diffusion can only train a certain noise depth without starting from Gaussian noise.
 
-配置文件中指定`k_step_max`为扩散深度就是进行这样的训练，该值必须小于1000(这是完整扩散的步数)。这样训练的模型不能单独推理，必须在前级模型的输出结果上或输入源上进行浅扩散；扩散的最大深度不能超过`k_step_max`。
+Specify in Configuration File `k_step_max` refers to the depth of diffusion, which is the training process. The value must be less than 1000 (which is the number of steps for complete diffusion). The model trained in this way cannot be inferred separately, and shallow diffusion must be carried out on the output results or input sources of the previous model; The maximum depth of diffusion cannot exceed `k_step_max`.
 
-示例配置文件见`configs/config_shallow.yaml`。
+Sample config can be found in`configs/config_shallow.yaml`。
 
-推荐将这种只能浅扩散的扩散模型与naive模型组合为组合模型使用。
+It is recommended to combine this shallow only Diffusion model with the naive model as a combo model.
 
-## 5. 可视化
+## 5. Visualization
 ```bash
-# 使用tensorboard检查训练状态
+# Use tensorboard to check the training status
 tensorboard --logdir=exp
 ```
-第一次验证后，在 TensorBoard 中可以看到合成后的测试音频。
+After the first validation, you can see the synthesized test audio in TensorBoard.
 
-## 6. 非实时推理
+## 6. Offline Inference
 ```bash
-python main.py -i <input.wav> -model <model_ckpt.pt> -o <output.wav> -k <keychange> -id <speaker_id> -speedup <speedup> -method <method> -kstep <kstep> -nmodel <nmodel> -pe <f0_extractor>
+python main.py -i <input.wav> -model <model_ckpt.pt> -o <output.wav> -k <keychange> -id <speaker_id> -speedup <speedup> -method <method> -kstep <kstep> -nmodel <nmodel>
 ```
-`-model`是模型的路径，`-k`是变调， `-speedup`为加速倍速，`-method`为`pndm`,`ddim`,`unipc`或`dpm-solver`, `-kstep`为浅扩散步数，`-id`为扩散模型的说话人id。
+`-model` is the model path, `-k` is the pitch shift, `-speedup` is the speedup multiplier, `-method` is `pndm`,`ddim`,`unipc` or `dpm-solver`, `-kstep` is the shallow diffusion step, `-id` is the speaker ID of the diffusion model.
 
-如果`-kstep`不为空，则以输入源的 mel 进行浅扩散，若`-kstep`为空，则进行完整深度的高斯扩散。
+If `-kstep` is not empty, shallow diffusion will be performed on the input source mel, if `-kstep` is empty, full depth Gaussian diffusion will be performed.
 
-`-nmodel`(可选，需要单独训练)是naive模型的路径，用来提供一个大致的mel给扩散模型进行k_step深度的浅扩散，其参数需要与主模型匹配。
+`-nmodel`(optional, requiring separate training) is the path of the naive model, It is used to provide a rough mel for shallow diffusion of k depth to the Diffusion model, and its parameters need to match the main model.
 
-`-pe` 可选项为 `crepe` `parselmouth` `dio` `harvest` `rmvpe` 默认 `crepe`  
+~~If voiceprint encoding was used, an external voiceprint can be specified with `-spkemb`, or the model's voiceprint dictionary can be overwritten with `-spkembdict`.~~
 
-~~如果使用了声纹编码，那么可以通过`-spkemb`指定一个外部声纹，或者通过`-spkembdict`覆盖模型模型的声纹词典。~~
+## 7. Units Index(Optional,Not Recommended)
+Like [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) and [so-vits-svc](https://github.com/svc-develop-team/so-vits-svc).
 
-## 7. Units索引(可选,不推荐)
-与[RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)和[so-vits-svc](https://github.com/svc-develop-team/so-vits-svc)类似的特征索引。
-
-**注意，此为可选功能，无索引也可正常使用，索引会占用大量存储空间，索引时还会大量占用CPU，此功能不推荐使用。**
+**Note that this is an optional feature and can be inferred normally without use.Indexing takes up a large amount of storage space and also consumes a lot of CPU during indexin.**
 ```bash
-# 训练特征索引，需要先完成预处理
+# training index，preprocessing needs to be completed first
 python train_units_index.py -c config.yaml
 ```
-推理时，使用`-lr`参数使用。此参数为检索比率。
+When reasoning, use the '- lr' parameter. This parameter is the retrieval ratio.
 
-## 8. 实时推理
-推荐使用本仓库自带的GUI进行实时推理，如果需要使用浅扩散请先组合模型。
+## 8. Real time inference
+It is recommended to use the built-in GUI of this warehouse for real-time inference. If shallow diffusion is needed, please first combine the models.
 ```bash
 python gui_realtime.py
 ```
 
-本项目也可配合[rtvc](https://github.com/fishaudio/realtime-vc-gui)实现实时推理。
+This project can also be coordinated with[rtvc](https://github.com/fishaudio/realtime-vc-gui)Implement real-time inference.
 
-**注意：目前flask_api为实验性功能，rtvc也未完善，不推荐使用此方式。**
+**Note: Currently flask_api is an experimental feature and RTVC is not yet fully developed, so it is not recommended to use this method.**
 
 ```bash
 pip install rtvc
@@ -233,8 +236,8 @@ python rtvc
 python flask_api.py
 ```
 
-## 9. 兼容性
-### 9.1. Units编码器
+## 9. Compatibility
+### 9.1. Units Encoder
 |                               | Diffusion-SVC | [DDSP-SVC](https://github.com/yxlllc/DDSP-SVC) | [so-vits-svc](https://github.com/svc-develop-team/so-vits-svc) |
 |-------------------------------|---------------|------------------------------------------------|----------------------------------------------------------------|
 | ContentVec                    | √             | √                                              | √                                                              |
@@ -248,24 +251,24 @@ python flask_api.py
 | WavLM(Base,Large)             | ×             | ×                                              | √*                                                             |
 
 ## 10. Colab
-可以使用[TheMandateOfRock](https://github.com/OOPPEENN)写的笔记`Diffusion_SVC_CN.ipynb`; 由于我没有条件测试，所以有关问题请向笔记作者反馈。~~(我摸了)~~
+You can use `Diffusion_SVC_EN.ipynb` written by [TheMandateOfRock](https://github.com/OOPPEENN); As I do not have a conditional test, please provide feedback to the note author regarding any issues.~~(我摸了)~~
 
-## 11.Onnx导出
-在exp文件夹下创建一个新文件夹(该文件夹的名字就是等会命令中的ProjectName)，将模型和配置文件放置入其中，模型重命名为model.pt，配置为config.yaml
+## 11.Onnx export
+Create a new folder under the exp folder(the name of the folder is ProjectName in the following command), place the model and configuration files in it, rename the model file to model.pt, rename the config file to config.yaml
 
-然后执行以下命令进行导出。
+Then execute the following command to export.
 ```shell
 python diffusion/onnx_export.py --project <ProjectName>
 ```
-导出完成之后会自动创建[MoeVS](https://github.com/NaruseMioShirakana/MoeVoiceStudio)的配置文件,感谢[NaruseMioShirakana](https://github.com/NaruseMioShirakana)(同时也是MoeVS的作者)提供的onnx导出支持。
+After the export is completed, a configuration file for [MoeVS](https://github.com/NaruseMioShirakana/MoeVoiceStudio) will be automatically created. Thank you to [NaruseMioShirakana](https://github.com/NaruseMioShirakana)(also the author of MoeVS) for providing onnx export support.
 
-## 感谢
+## Acknowledgement
 * [DDSP-SVC](https://github.com/yxlllc/DDSP-SVC)
 * [soft-vc](https://github.com/bshall/soft-vc)
 * [diff-SVC](https://github.com/prophesier/diff-SVC)
 * [DiffSinger (OpenVPI version)](https://github.com/openvpi/DiffSinger)
 
-## 感谢所有贡献者作出的努力
+## Thank you to all contributors for their efforts
 <a href="https://github.com/CNChTu/Diffusion-SVC/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=CNChTu/Diffusion-SVC" />
 </a>
