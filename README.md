@@ -1,5 +1,7 @@
 Language: [简体中文](./README_cn.md) **English**
 
+# This is a fork for my Vietnamese voice conversion project. All modifications can be found in commit history.
+
 **This English readme will not update first time, please read [简体中文](./README.md) for latest info。**
 
 I am not good at English. If there are any errors, please point them out.
