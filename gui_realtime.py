@@ -551,6 +551,7 @@ class GUI:
             f0_model=self.config.select_pitch_extractor,
             f0_min=65,
             f0_max=1100)
+        print(self.config.checkpoint_path)
         self.start_stream()
 
     def start_stream(self):
@@ -637,7 +638,7 @@ class GUI:
         cor_den = torch.sqrt(
             F.conv1d(conv_input ** 2, torch.ones(1, 1, self.crossfade_frame, device=self.device)) + 1e-8)
         sola_shift = torch.argmax(cor_nom[0, 0] / cor_den[0, 0])
-        sola_shift=0
+        # sola_shift=0
         temp_wav = temp_wav[sola_shift: sola_shift + self.block_frame + self.crossfade_frame]
         print('sola_shift: ' + str(int(sola_shift)))
 
